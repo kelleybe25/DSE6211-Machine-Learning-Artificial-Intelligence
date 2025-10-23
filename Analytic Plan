@@ -1,0 +1,117 @@
+---
+title: "DSE6211 Analytic Plan Appendix A"
+author: "Ben Kelley"
+date: "2024-05-20"
+output: pdf_document
+---
+
+```{r }
+library(readr)
+library(dplyr)
+library(leaps)
+
+project_data <- read_csv("~/Data Science Masters Program/DSE6211/project_data.csv")
+View(project_data) #the data set has 36238 rows of data with 18 variables
+
+
+# adding a column to the data set which I will assign a 1 or 0 depending on 
+# customer status
+project_data[ , 'cancel'] <- NA
+
+# using if else statement to assign a 1 or 0 to the new 'current' column 
+# denoting 1 for current customer and 0 for attrited customer
+project_data$cancel <- ifelse(project_data$booking_status %in% 
+                                c('canceled'), 1, 0)
+
+#removing any possible N/A values from the data set
+project_data <- na.omit(project_data)
+summary(project_data)
+nrow(project_data)
+
+# in other data sets I have found some entries filled with "Unknown" which has 
+# resulted in model errors so I am using the filter function to go through the 
+# columns one by one to make sure there are no "Unknown/unknown" values.
+
+project_data_1 <- project_data %>%
+  filter('no_of_adults' != "Unknown") %>%
+  filter('no_of_children' != "Unknown") %>% 
+  filter('no_of_weekend_nights' != "Unknown") %>% 
+  filter('no_of_week_nights' != "Unknown") %>% 
+  filter('type_of_meal_plan' != "Unknown") %>% 
+  filter('required_car_parking_space' != "Unknown") %>% 
+  filter('room_type_reserved' != "Unknown") %>% 
+  filter('lead_time' != "Unknown") %>% 
+  filter('arrival_date' != "Unknown") %>% 
+  filter('market_segment_type' != "Unknown") %>% 
+  filter('repeated_guest' != "Unknown") %>% 
+  filter('no_of_previous_cancellations' != "Unknown") %>% 
+  filter('no_of_previous_bookings_not_cancelled' != "Unknown") %>% 
+  filter('avg_price_per_room' != "Unknown") %>% 
+  filter('no_of_special_requests' != "Unknown") %>% 
+  filter('I have ' != "Unknown")
+ 
+nrow(project_data_1)
+
+project_data_1 <- project_data %>%
+  filter('no_of_adults' != "unknown") %>%
+  filter('no_of_children' != "unknown") %>% 
+  filter('no_of_weekend_nights' != "unknown") %>% 
+  filter('no_of_week_nights' != "unknown") %>% 
+  filter('type_of_meal_plan' != "unknown") %>% 
+  filter('required_car_parking_space' != "unknown") %>% 
+  filter('room_type_reserved' != "unknown") %>% 
+  filter('lead_time' != "unknown") %>% 
+  filter('arrivale_date' != "unknown") %>% 
+  filter('market_segment_type' != "unknown") %>% 
+  filter('repeated_guest' != "unknown") %>% 
+  filter('no_of_previous_cancellations' != "unknown") %>% 
+  filter('no_of_previous_bookings_not_cancelled' != "unknown") %>% 
+  filter('avg_price_per_room' != "unknown") %>% 
+  filter('no_of_special_requests' != "unknown") %>% 
+  filter('booking_status' != "unknown")
+
+nrow(project_data_1)
+
+###############################################################################
+project_data_2 <- as.data.frame(project_data_1)
+
+# using regsubsets to see which numeric variables are most indicative of cancel = 1
+project_data_2 %>%
+  select(cancel) %>%
+  is.na() %>%
+  sum()
+
+
+regfit_full = regsubsets(cancel~ no_of_adults + no_of_children +
+                           no_of_weekend_nights + no_of_week_nights + 
+                           required_car_parking_space + lead_time + 
+                           repeated_guest + no_of_previous_cancellations + 
+                           avg_price_per_room + no_of_special_requests,
+                           data = project_data_2,
+                           nvmax = 10)
+summary(regfit_full)
+reg_summary = summary(regfit_full)
+names(reg_summary)
+data.frame(
+  Adj.R2 = which.max(reg_summary$adjr2),
+  CP = which.min(reg_summary$cp),
+  BIC = which.min(reg_summary$bic)
+)
+
+reg_summary$rsq 
+reg_summary$rss 
+reg_summary$adjr2 
+reg_summary$cp  
+
+# of these numeric variables it seems like 7-8 is the optimal number for 
+# predicting.
+# The top 7 variables in order are:
+# 1. lead time
+# 2. number of special requests
+# 3. average price per room
+# 4. number of weekend nights
+# 5. required car parking space
+# 6. number of adults
+# 7. number of week nights
+
+```
